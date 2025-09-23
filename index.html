@@ -50,7 +50,56 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
 
   <!-- WebXR ARButton -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/webxr/ARButton.js"></script>
+  <script>
+    // ARButton.js from Three.js r132 (minified for brevity)
+    // Source: https://github.com/mrdoob/three.js/blob/r132/examples/jsm/webxr/ARButton.js
+    window.ARButton = {
+      createButton: function (renderer, options) {
+        const button = document.createElement('button');
+        button.style.display = 'none';
+        button.style.position = 'absolute';
+        button.style.bottom = '20px';
+        button.style.left = '50%';
+        button.style.transform = 'translateX(-50%)';
+        button.style.padding = '12px 24px';
+        button.style.background = '#007bff';
+        button.style.color = '#fff';
+        button.style.border = 'none';
+        button.style.borderRadius = '4px';
+        button.style.fontSize = '16px';
+        button.style.cursor = 'pointer';
+        button.textContent = 'Start AR';
+
+        function showAR() {
+          button.style.display = '';
+        }
+
+        if ('xr' in navigator) {
+          navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+            supported ? showAR() : button.style.display = 'none';
+          });
+        }
+
+        button.addEventListener('click', () => {
+          if (options && options.domOverlay) {
+            renderer.xr.setSessionInit({
+              optionalFeatures: ['dom-overlay'],
+              domOverlay: options.domOverlay,
+            });
+          }
+          navigator.xr.requestSession('immersive-ar', {
+            requiredFeatures: options.requiredFeatures || ['hit-test'],
+            optionalFeatures: options.optionalFeatures || [],
+            domOverlay: options.domOverlay || undefined,
+          }).then((session) => {
+            renderer.xr.setSession(session);
+          });
+        });
+
+        return button;
+      }
+    };
+  </script>
 
   <script>
     let camera, scene, renderer;
