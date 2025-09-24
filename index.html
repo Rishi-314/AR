@@ -43,10 +43,8 @@
   <div id="loading">Loading model...</div>
   <button id="ar-button">Start AR</button>
 
-  <!-- Three.js Core -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-  <!-- Loaders -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <script>
     let camera, scene, renderer;
@@ -71,6 +69,7 @@
 
       // Renderer
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
       document.body.appendChild(renderer.domElement);
@@ -81,8 +80,9 @@
       scene.add(light);
 
       // Reticle
+      const reticleGeometry = new THREE.RingGeometry(0.1, 0.15, 32).rotateX(-Math.PI / 2);
       reticle = new THREE.Mesh(
-        new THREE.RingGeometry(0.1, 0.15, 32).rotateX(-Math.PI / 2),
+        reticleGeometry,
         new THREE.MeshBasicMaterial({ color: 0xffffff })
       );
       reticle.matrixAutoUpdate = false;
@@ -97,15 +97,13 @@
       // Load Model
       const loader = new THREE.GLTFLoader();
       loader.load(
-        'model.glb',
+        'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Embedded/Box.gltf',
         function (gltf) {
           model = gltf.scene;
-          model.scale.set(0.3, 0.3, 0.3);
+          model.scale.set(0.2, 0.2, 0.2);
           model.visible = false;
           scene.add(model);
-
           document.getElementById('loading').style.display = 'none';
-          // Button visibility handled below
         },
         undefined,
         function (error) {
@@ -114,7 +112,7 @@
         }
       );
 
-      // Check if immersive-ar with hit-test is supported and enable button accordingly
+      // Check for WebXR support
       if (navigator.xr) {
         navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
           if (supported) {
@@ -157,11 +155,9 @@
 
         if (!hitTestSourceRequested) {
           session.requestReferenceSpace('viewer').then(function (refSpace) {
-            session
-              .requestHitTestSource({ space: refSpace })
-              .then(function (source) {
-                hitTestSource = source;
-              });
+            session.requestHitTestSource({ space: refSpace }).then(function (source) {
+              hitTestSource = source;
+            });
           });
 
           session.addEventListener('end', function () {
@@ -189,6 +185,13 @@
       }
 
       renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', onWindowResize);
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
     }
   </script>
 </body>
