@@ -1,11 +1,16 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WebXR AR Viewer</title>
   <style>
-    body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: #000;
+    }
     #ar-button {
       position: absolute;
       bottom: 20px;
@@ -44,7 +49,7 @@
     let model = null;
     let hitTestSource = null;
     let hitTestSourceRequested = false;
-    let localReferenceSpace = null;
+    let xrRefSpace = null;
 
     const loadingEl = document.getElementById('loading');
     const arButton = document.getElementById('ar-button');
@@ -61,7 +66,7 @@
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.xr.enabled = true;
-      renderer.setClearColor(0x000000, 0); // make background transparent
+      renderer.setClearColor(0x000000, 0); // Transparent background for AR
       document.body.appendChild(renderer.domElement);
 
       // Light
@@ -82,7 +87,7 @@
       controller.addEventListener('select', onSelect);
       scene.add(controller);
 
-      // Load Model
+      // Load GLTF model
       const loader = new GLTFLoader();
       loader.load(
         'model.glb',
@@ -118,12 +123,11 @@
     }
 
     async function startARSession() {
-      const session = await navigator.xr.requestSession('immersive-ar', {
-        requiredFeatures: ['hit-test', 'local']
-      });
+      const session = await navigator.xr.requestSession('immersive-ar', { requiredFeatures: ['hit-test', 'local'] });
       renderer.xr.setSession(session);
 
-      localReferenceSpace = await session.requestReferenceSpace('local');
+      // Setup reference space
+      xrRefSpace = await session.requestReferenceSpace('local');
 
       session.addEventListener('end', () => {
         hitTestSourceRequested = false;
@@ -146,11 +150,12 @@
     }
 
     function render(timestamp, frame) {
-      // Use AR camera from WebXR
       const xrCamera = renderer.xr.getCamera();
-      
+
       if (frame) {
         const session = renderer.xr.getSession();
+
+        // Request hit-test source if not done yet
         if (!hitTestSourceRequested) {
           session.requestReferenceSpace('viewer').then((viewerRefSpace) => {
             session.requestHitTestSource({ space: viewerRefSpace }).then((source) => {
@@ -164,7 +169,7 @@
           const hitTestResults = frame.getHitTestResults(hitTestSource);
           if (hitTestResults.length > 0) {
             const hit = hitTestResults[0];
-            const pose = hit.getPose(localReferenceSpace);
+            const pose = hit.getPose(xrRefSpace);
             if (pose) {
               reticle.visible = true;
               reticle.matrix.fromArray(pose.transform.matrix);
